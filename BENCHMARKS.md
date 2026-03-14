@@ -65,6 +65,7 @@ benchmarked (compilation and witness generation excluded).
 | DSL | Proving System | Peak RAM | Wall Time | Proof Size |
 |---|---|---|---|---|
 | **ZoKrates** | Groth16 (bellman) | **9 MB** | **0.04 s** | 849 B |
+| **ZoKrates** | Groth16 (arkworks) | **16 MB** | **0.05 s** | 849 B |
 | **Noir** | UltraHonk | **12 MB** | **0.37 s** | 15.9 KB |
 | **Circom** | Groth16 (snarkjs) | **245 MB** | **0.42 s** | 802 B |
 | **Circom** | PLONK (snarkjs) | **390 MB** | **2.1 s** | 2.2 KB |
@@ -168,9 +169,13 @@ cd circom/merkle
 cd noirlang/merkle
 /usr/bin/time -l bb prove -b ./target/merkle.json -w ./target/merkle.gz -o ./target
 
-# ZoKrates
+# ZoKrates (bellman)
 cd zokrates/merkle
 /usr/bin/time -l zokrates generate-proof -i build/merkle -b bellman -s g16 -p build/proving.key -w build/witness -j build/proof.json
+
+# ZoKrates (arkworks)
+cd zokrates/merkle
+/usr/bin/time -l zokrates generate-proof -i build/merkle -b ark -s g16 -p build/proving_ark.key -w build/witness -j build/proof_ark.json
 
 # Cairo
 cd cairo/merkle

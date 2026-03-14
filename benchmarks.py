@@ -90,6 +90,18 @@ FRAMEWORKS = [
         proof_files=["build/proof.json"],
     ),
     Framework(
+        name="zokrates_ark",
+        display="ZoKrates (ark)",
+        proving_system="Groth16 (arkworks)",
+        workdir="zokrates/merkle",
+        bench_cmd=(
+            "zokrates generate-proof "
+            "-i build/merkle -b ark -s g16 -p build/proving_ark.key "
+            "-w build/witness -j build/proof_ark.json"
+        ),
+        proof_files=["build/proof_ark.json"],
+    ),
+    Framework(
         name="cairo",
         display="Cairo",
         proving_system="STARK (Stwo)",
