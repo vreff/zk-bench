@@ -25,6 +25,38 @@ Five use Poseidon-family hashes; RISC Zero, SP1, Jolt, and powdr use SHA-256.
 | Jolt | jolt + jolt-sdk | jolt 0.1.0, jolt-sdk 0.1.0 |
 | powdr | cargo-powdr + powdr | cargo-powdr 0.1.3, powdr 0.1.3 |
 
+## Arithmetic & Proof Backends
+
+Following the methodology of [zk-Bench (Ernstberger et al., 2023)](https://eprint.iacr.org/2023/1503),
+we distinguish the **arithmetic backend** (finite field and elliptic curve library) from the
+**circuit/proof backend** (the proof system). The arithmetic backend determines the cost of
+primitive operations (field add/mul/inv, MSM, FFT) that dominate proving time.
+
+| Framework | Finite Field | Bits | Arithmetic Library | Curve (PCS) | Proof System |
+|---|---|---|---|---|---|
+| **Circom** | BN254 scalar | 254 | [ffjavascript](https://github.com/nicola/ffjavascript) (JS) | BN254 | Groth16 |
+| **Noir** | BN254 scalar | 254 | [Barretenberg](https://github.com/AztecProtocol/barretenberg) (C++) | BN254 | UltraHonk |
+| **ZoKrates** | BN254 scalar | 254 | [arkworks](https://github.com/arkworks-rs/algebra) (Rust) | BN254 | Groth16 |
+| **Cairo** | M31 (Mersenne-31) | 31 | [Stwo](https://github.com/starkware-libs/stwo) (Rust, SIMD) | — | Circle STARK |
+| **Leo** | BLS12-377 scalar | 252 | [snarkVM](https://github.com/ProvableHQ/snarkVM) (Rust) | BLS12-377 | Marlin |
+| **RISC Zero** | Baby Bear | 31 | [risc0-core](https://github.com/risc0/risc0) (Rust, Metal) | — | FRI-STARK |
+| **SP1** | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3) (Rust) | BN254† | FRI-STARK |
+| **Jolt** | BN254 scalar | 254 | [arkworks](https://github.com/a16z/arkworks-algebra) (Rust) | BN254 | Lasso + Dory |
+| **powdr** | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3) (Rust) | — | FRI-STARK |
+
+**†** SP1 uses Baby Bear for STARK generation; BN254 is used only for optional recursive
+compression to Groth16 (not benchmarked here).
+
+**Key observations:**
+- **254-bit fields** (BN254, BLS12-377) are used by pairing-based SNARKs that need elliptic curve
+  pairings for polynomial commitment schemes (KZG, Dory). Larger field ⇒ higher per-operation cost.
+- **31-bit fields** (Baby Bear, Mersenne-31) are used by STARK systems. Smaller field ⇒ SIMD-friendly
+  (pack multiple field elements into a single register), but requires extension fields for cryptographic
+  security (typically degree-4 extensions, giving ~124-bit security).
+- **Arithmetic library matters**: Circom's JavaScript field arithmetic (ffjavascript) is ~10–50×
+  slower per-operation than native Rust/C++ implementations, explaining its higher memory despite
+  the same Groth16 algorithm as ZoKrates.
+
 ## Proof Generation Benchmarks
 
 Measured with `/usr/bin/time -l` on macOS. Only the **proof generation** step is
