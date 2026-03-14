@@ -36,7 +36,7 @@ primitive operations (field add/mul/inv, MSM, FFT) that dominate proving time.
 |---|---|---|---|---|---|
 | [**Circom**](https://github.com/iden3/circom) | BN254 scalar | 254 | [ffjavascript](https://github.com/nicola/ffjavascript) (JS) | BN254 | Groth16 ([snarkjs](https://github.com/iden3/snarkjs)) |
 | [**Noir**](https://github.com/noir-lang/noir) | BN254 scalar | 254 | [Barretenberg](https://github.com/AztecProtocol/barretenberg/tree/master/cpp/src/barretenberg/ecc/fields) (C++) | BN254 | UltraHonk |
-| [**ZoKrates**](https://github.com/Zokrates/ZoKrates) | BN254 scalar | 254 | [arkworks](https://github.com/arkworks-rs/algebra/tree/master/ff) (Rust) | BN254 | Groth16 |
+| [**ZoKrates**](https://github.com/Zokrates/ZoKrates) | BN254 scalar | 254 | [bellman](https://github.com/zkcrypto/bellman) (Rust) | BN254 | Groth16 |
 | [**Cairo**](https://github.com/starkware-libs/cairo) | M31 (Mersenne-31) | 31 | [Stwo](https://github.com/starkware-libs/stwo/tree/main/crates/prover/src/core/fields) (Rust, SIMD) | — | Circle STARK |
 | [**Leo**](https://github.com/ProvableHQ/leo) | BLS12-377 scalar | 252 | [snarkVM](https://github.com/ProvableHQ/snarkVM/tree/mainnet/fields) (Rust) | BLS12-377 | Marlin |
 | [**RISC Zero**](https://github.com/risc0/risc0) | Baby Bear | 31 | [risc0-zkp](https://github.com/risc0/risc0/tree/main/risc0/zkp/src/field) (Rust, Metal) | — | FRI-STARK |
@@ -64,7 +64,7 @@ benchmarked (compilation and witness generation excluded).
 
 | DSL | Proving System | Peak RAM | Wall Time | Proof Size |
 |---|---|---|---|---|
-| **ZoKrates** | Groth16 | **15 MB** | **0.09 s** | 849 B |
+| **ZoKrates** | Groth16 (bellman) | **9 MB** | **0.04 s** | 849 B |
 | **Noir** | UltraHonk | **12 MB** | **0.37 s** | 15.9 KB |
 | **Circom** | Groth16 (snarkjs) | **258 MB** | **0.52 s** | 806 B |
 | **Jolt** | Lasso (Dory PCS) | **188 MB** | **3.46 s** | 77.5 KB |
@@ -77,8 +77,8 @@ benchmarked (compilation and witness generation excluded).
 ## Analysis
 
 ### Memory
-- **ZoKrates** and **Noir** are the most memory-efficient (~12–15 MB), suitable for
-  resource-constrained environments.
+- **ZoKrates** is the most memory-efficient (~9 MB with bellman backend), followed
+  by **Noir** (~12 MB). Both are suitable for resource-constrained environments.
 - **Jolt** uses ~188 MB — remarkably lightweight for a general-purpose zkVM. Jolt's
   lookup-based approach (Lasso) avoids the large polynomial evaluation tables that
   STARK-based zkVMs require.
@@ -100,7 +100,7 @@ benchmarked (compilation and witness generation excluded).
   over large polynomial evaluations.
 
 ### Speed
-- **ZoKrates** is fastest (0.09s) with its native Rust Groth16 implementation.
+- **ZoKrates** is fastest (0.04s) using the bellman backend for Groth16.
 - **Noir** and **Circom** are comparable (0.37s and 0.52s).
 - **Jolt** takes 3.46s — the fastest of the three general-purpose zkVMs. Jolt's
   lookup-based proving (Lasso + Dory commitment scheme) avoids the heavy polynomial
@@ -146,7 +146,7 @@ benchmarked (compilation and witness generation excluded).
 |---|---|---|---|---|---|---|---|---|
 | Trusted Setup | Required | No | Universal (in snarkVM) | No | No | No | No | No |
 | Proof Size | Tiny (~800 B) | Small (~16 KB) | Small (~1.1 KB) | Small (~78 KB) | Medium (~239 KB) | Medium (~2.7 MB) | Medium (~2.0 MB) | Large (~10 MB) |
-| Prover Memory | Low–Medium | Low | Medium (~375 MB) | Low (~188 MB) | Medium (~857 MB) | High (~3 GB) | High (~2.9 GB) | Very High |
+| Prover Memory | Low | Low | Medium (~375 MB) | Low (~188 MB) | Medium (~857 MB) | High (~3 GB) | High (~2.9 GB) | Very High |
 | Prover Speed | Fast | Fast | Medium | Fast–Medium | Medium | Slow | Slow | Slow |
 | Post-Quantum | No | No | No | No | Yes | Yes | Yes | Yes |
 | Verification | Fast (pairing) | Fast | Fast | Fast (pairing) | Fast (hash-based) | Fast (hash-based) | Fast (hash-based) | Fast (hash-based) |
@@ -165,7 +165,7 @@ cd noirlang/merkle
 
 # ZoKrates
 cd zokrates/merkle
-/usr/bin/time -l zokrates generate-proof -i build/merkle -p build/proving.key -w build/witness -j build/proof.json
+/usr/bin/time -l zokrates generate-proof -i build/merkle -b bellman -s g16 -p build/proving.key -w build/witness -j build/proof.json
 
 # Cairo
 cd cairo/merkle

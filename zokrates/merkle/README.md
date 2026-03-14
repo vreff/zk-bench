@@ -2,7 +2,7 @@
 
 Merkle tree membership proof circuit in [ZoKrates](https://zokrates.github.io/). Proves that a value exists in a Poseidon-based Merkle tree (depth 3, 8 leaves) without revealing the value or its position.
 
-Equivalent to the circom and Noir versions, using ZoKrates' stdlib Poseidon hash and the Groth16 proving system.
+Equivalent to the circom and Noir versions, using ZoKrates' stdlib Poseidon hash and the Groth16 proving system with the bellman backend (faster and more memory-efficient than the default arkworks backend).
 
 ## Prerequisites
 
@@ -48,13 +48,13 @@ zokrates compute-witness -i build/merkle -o build/witness -a 42 3 30 18520321019
 ### 4. Trusted setup
 
 ```bash
-zokrates setup -i build/merkle -p build/proving.key -v build/verification.key
+zokrates setup -i build/merkle -b bellman -s g16 -p build/proving.key -v build/verification.key
 ```
 
 ### 5. Generate proof
 
 ```bash
-zokrates generate-proof -i build/merkle -p build/proving.key -w build/witness -j build/proof.json
+zokrates generate-proof -i build/merkle -b bellman -s g16 -p build/proving.key -w build/witness -j build/proof.json
 ```
 
 ### 6. Verify proof

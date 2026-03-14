@@ -67,11 +67,11 @@ FRAMEWORKS = [
     Framework(
         name="zokrates",
         display="ZoKrates",
-        proving_system="Groth16",
+        proving_system="Groth16 (bellman)",
         workdir="zokrates/merkle",
         bench_cmd=(
             "zokrates generate-proof "
-            "-i build/merkle -p build/proving.key "
+            "-i build/merkle -b bellman -s g16 -p build/proving.key "
             "-w build/witness -j build/proof.json"
         ),
         proof_files=["build/proof.json"],
