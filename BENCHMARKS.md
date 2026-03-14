@@ -66,7 +66,8 @@ benchmarked (compilation and witness generation excluded).
 |---|---|---|---|---|
 | **ZoKrates** | Groth16 (bellman) | **9 MB** | **0.04 s** | 849 B |
 | **Noir** | UltraHonk | **12 MB** | **0.37 s** | 15.9 KB |
-| **Circom** | Groth16 (snarkjs) | **258 MB** | **0.52 s** | 806 B |
+| **Circom** | Groth16 (snarkjs) | **245 MB** | **0.42 s** | 802 B |
+| **Circom** | PLONK (snarkjs) | **390 MB** | **2.1 s** | 2.2 KB |
 | **Jolt** | Lasso (Dory PCS) | **188 MB** | **3.46 s** | 77.5 KB |
 | **Leo** | Marlin (snarkVM) | **375 MB** | **9.62 s** | 1.1 KB |
 | **RISC Zero** | STARK (FRI) | **857 MB** | **19.8 s** | 239 KB |
@@ -158,6 +159,10 @@ benchmarked (compilation and witness generation excluded).
 # Circom
 cd circom/merkle
 /usr/bin/time -l snarkjs groth16 prove build/merkle_final.zkey build/witness.wtns build/proof.json build/public.json
+
+# Circom (PLONK)
+cd circom/merkle
+/usr/bin/time -l snarkjs plonk prove build/merkle_plonk.zkey build/witness.wtns build/proof_plonk.json build/public_plonk.json
 
 # Noir
 cd noirlang/merkle

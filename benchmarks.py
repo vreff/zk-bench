@@ -57,6 +57,19 @@ FRAMEWORKS = [
         proof_files=["build/proof.json"],
     ),
     Framework(
+        name="circom_plonk",
+        display="Circom (PLONK)",
+        proving_system="PLONK (snarkjs)",
+        workdir="circom/merkle",
+        pre_cmds=[],
+        bench_cmd=(
+            "snarkjs plonk prove "
+            "build/merkle_plonk.zkey build/witness.wtns "
+            "build/proof_plonk.json build/public_plonk.json"
+        ),
+        proof_files=["build/proof_plonk.json"],
+    ),
+    Framework(
         name="noir",
         display="Noir",
         proving_system="UltraHonk",
