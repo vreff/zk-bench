@@ -34,15 +34,15 @@ primitive operations (field add/mul/inv, MSM, FFT) that dominate proving time.
 
 | Framework | Finite Field | Bits | Arithmetic Library | Curve (PCS) | Proof System |
 |---|---|---|---|---|---|
-| **Circom** | BN254 scalar | 254 | [ffjavascript](https://github.com/nicola/ffjavascript) (JS) | BN254 | Groth16 |
-| **Noir** | BN254 scalar | 254 | [Barretenberg](https://github.com/AztecProtocol/barretenberg) (C++) | BN254 | UltraHonk |
-| **ZoKrates** | BN254 scalar | 254 | [arkworks](https://github.com/arkworks-rs/algebra) (Rust) | BN254 | Groth16 |
-| **Cairo** | M31 (Mersenne-31) | 31 | [Stwo](https://github.com/starkware-libs/stwo) (Rust, SIMD) | — | Circle STARK |
-| **Leo** | BLS12-377 scalar | 252 | [snarkVM](https://github.com/ProvableHQ/snarkVM) (Rust) | BLS12-377 | Marlin |
-| **RISC Zero** | Baby Bear | 31 | [risc0-core](https://github.com/risc0/risc0) (Rust, Metal) | — | FRI-STARK |
-| **SP1** | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3) (Rust) | BN254† | FRI-STARK |
-| **Jolt** | BN254 scalar | 254 | [arkworks](https://github.com/a16z/arkworks-algebra) (Rust) | BN254 | Lasso + Dory |
-| **powdr** | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3) (Rust) | — | FRI-STARK |
+| [**Circom**](https://github.com/iden3/circom) | BN254 scalar | 254 | [ffjavascript](https://github.com/nicola/ffjavascript) (JS) | BN254 | Groth16 ([snarkjs](https://github.com/iden3/snarkjs)) |
+| [**Noir**](https://github.com/noir-lang/noir) | BN254 scalar | 254 | [Barretenberg](https://github.com/AztecProtocol/barretenberg/tree/master/cpp/src/barretenberg/ecc/fields) (C++) | BN254 | UltraHonk |
+| [**ZoKrates**](https://github.com/Zokrates/ZoKrates) | BN254 scalar | 254 | [arkworks](https://github.com/arkworks-rs/algebra/tree/master/ff) (Rust) | BN254 | Groth16 |
+| [**Cairo**](https://github.com/starkware-libs/cairo) | M31 (Mersenne-31) | 31 | [Stwo](https://github.com/starkware-libs/stwo/tree/main/crates/prover/src/core/fields) (Rust, SIMD) | — | Circle STARK |
+| [**Leo**](https://github.com/ProvableHQ/leo) | BLS12-377 scalar | 252 | [snarkVM](https://github.com/ProvableHQ/snarkVM/tree/mainnet/fields) (Rust) | BLS12-377 | Marlin |
+| [**RISC Zero**](https://github.com/risc0/risc0) | Baby Bear | 31 | [risc0-zkp](https://github.com/risc0/risc0/tree/main/risc0/zkp/src/field) (Rust, Metal) | — | FRI-STARK |
+| [**SP1**](https://github.com/succinctlabs/sp1) | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3/tree/main/baby-bear) (Rust) | BN254† | FRI-STARK |
+| [**Jolt**](https://github.com/a16z/jolt) | BN254 scalar | 254 | [arkworks](https://github.com/arkworks-rs/algebra/tree/master/curves/bn254) (Rust) | BN254 | Lasso + Dory |
+| [**powdr**](https://github.com/powdr-labs/powdr) | Baby Bear | 31 | [Plonky3](https://github.com/Plonky3/Plonky3/tree/main/baby-bear) (Rust) | — | FRI-STARK |
 
 **†** SP1 uses Baby Bear for STARK generation; BN254 is used only for optional recursive
 compression to Groth16 (not benchmarked here).
