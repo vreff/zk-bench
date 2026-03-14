@@ -1,0 +1,16 @@
+{
+  "name": "circom-merkle",
+  "version": "1.0.0",
+  "description": "Merkle tree membership proof circuit in circom",
+  "scripts": {
+    "compile": "circom circuits/merkle.circom --r1cs --wasm --sym -o build",
+    "setup": "snarkjs groth16 setup build/merkle.r1cs pot12_final.ptau build/merkle_0000.zkey",
+    "witness": "node build/merkle_js/generate_witness.js build/merkle_js/merkle.wasm input.json build/witness.wtns",
+    "prove": "snarkjs groth16 prove build/merkle_0000.zkey build/witness.wtns build/proof.json build/public.json",
+    "verify": "snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7"
+  }
+}

@@ -1,0 +1,26 @@
+// Merkle tree membership proof in ZoKrates.
+// Proves that a value exists in a Poseidon-based Merkle tree (depth 3, 8 leaves)
+// without revealing the value or its position.
+
+import "hashes/poseidon/poseidon" as poseidon;
+
+const u32 DEPTH = 3;
+
+def main(private field leaf, private u32 index, private field[DEPTH] siblings, field root) {
+    // Decompose index into bits (little-endian)
+    bool[DEPTH] mut bits = [false; DEPTH];
+    u32 mut rem = index;
+    for u32 i in 0..DEPTH {
+        bits[i] = rem % 2 == 1;
+        rem = rem / 2;
+    }
+
+    // Walk up the tree, hashing with siblings
+    field mut node = leaf;
+    for u32 i in 0..DEPTH {
+        field[2] pair = bits[i] ? [siblings[i], node] : [node, siblings[i]];
+        node = poseidon(pair);
+    }
+
+    assert(node == root, "Leaf is not a member of the Merkle tree");
+}

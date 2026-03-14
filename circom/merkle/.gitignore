@@ -1,0 +1,15 @@
+build/
+node_modules/
+
+# SRS / Powers of Tau ceremony files
+*.ptau
+
+# Proving keys
+*.zkey
+
+# Witness
+*.wtns
+
+# Proof artifacts
+proof.json
+public.json

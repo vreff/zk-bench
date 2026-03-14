@@ -1,0 +1,70 @@
+# Rust
+**/target/
+**/Cargo.lock
+
+# Node
+**/node_modules/
+**/package-lock.json
+
+# Circom build artifacts
+**/*.ptau
+**/*.zkey
+**/*.r1cs
+**/*.wtns
+**/*.sym
+**/*.wasm
+**/verification_key.json
+**/Verifier.sol
+**/witness_calculator.js
+**/generate_witness.js
+
+# ZoKrates build artifacts
+**/out
+**/out.r1cs
+**/out.wtns
+**/proving.key
+**/verification.key
+
+# Leo build artifacts
+**/*.avm
+**/*.prover
+**/*.verifier
+**/outputs/
+
+# Cairo
+**/Scarb.lock
+
+# Proof files (all frameworks)
+**/proof.json
+**/public.json
+**/proof.bin
+
+# Noir target artifacts
+**/target/*.json
+**/target/*.gz
+**/target/proof
+**/target/vk
+**/target/vk_hash
+**/target/public_inputs
+
+# powdr
+**/powdr-target/
+
+# Build directories
+**/build/
+
+# ZoKrates generated
+**/abi.json
+
+# Vendored dependencies
+**/lib/merkle/
+
+# OS / Editor / Misc
+.DS_Store
+**/.DS_Store
+nohup.out
+**/nohup.out
+*.swp
+*.swo
+**/.vscode/
+**/.github/
