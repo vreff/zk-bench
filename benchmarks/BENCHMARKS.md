@@ -1,7 +1,6 @@
 # ZK Proof Benchmarks — Merkle Tree Membership
 
-All nine implementations prove the same thing: membership of value `42` at index 3
-in a depth-3 Merkle tree with 8 leaves `[10, 20, 30, 42, 50, 60, 70, 80]`.
+All nine implementations prove the same thing: membership of value `42` in a merklet at index 3 in a depth-3 Merkle tree with 8 leaves `[10, 20, 30, 42, 50, 60, 70, 80]`.
 
 Five use Poseidon-family hashes; RISC Zero, SP1, Jolt, and powdr use SHA-256.
 

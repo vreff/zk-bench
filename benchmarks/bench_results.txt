@@ -1,0 +1,26 @@
+ZK Merkle Proof Benchmarks
+==========================
+
+Framework      Proving System           Peak RAM   Wall Time   Proof Size
+-------------------------------------------------------------------------
+ZoKrates (ark) Groth16 (arkworks)          16 MB      0.04 s        849 B
+ZoKrates       Groth16 (bellman)           10 MB      0.06 s        849 B
+ZoKrates (2x)  Groth16 (bellman)           12 MB      0.06 s        923 B
+ZoKrates ark (2x) Groth16 (arkworks)          22 MB      0.06 s        923 B
+Noir (2x)      UltraHonk                   13 MB      0.07 s      15.9 KB
+Noir           UltraHonk                   11 MB      0.17 s      15.9 KB
+Circom         Groth16 (snarkjs)          246 MB      0.46 s        805 B
+Circom (2x)    Groth16 (snarkjs)          314 MB      0.48 s        804 B
+Circom (PLONK) PLONK (snarkjs)            410 MB       2.0 s       2.2 KB
+Jolt           Lasso (Dory PCS)           191 MB       2.5 s      77.5 KB
+Circom PLONK (2x) PLONK (snarkjs)            445 MB       3.6 s       2.2 KB
+Jolt (2x)      Lasso (Dory PCS)           356 MB       3.7 s      78.5 KB
+Leo            Marlin (snarkVM)           422 MB       8.5 s       7.3 KB
+RISC Zero      STARK (FRI)              1,206 MB      17.4 s     238.8 KB
+Cairo (2x)     STARK (Stwo)             5,144 MB      24.2 s      10.3 MB
+powdr          STARK (Plonky3)          3,445 MB      26.6 s       1.9 MB
+Cairo          STARK (Stwo)             5,119 MB      28.6 s      10.3 MB
+powdr (2x)     STARK (Plonky3)          3,333 MB      34.1 s       2.0 MB
+RISC Zero (2x) STARK (FRI)              2,361 MB      35.3 s     250.5 KB
+SP1            STARK (Plonky3)          4,422 MB      42.3 s       2.6 MB
+SP1 (2x)       STARK (Plonky3)          4,303 MB      42.8 s          N/A

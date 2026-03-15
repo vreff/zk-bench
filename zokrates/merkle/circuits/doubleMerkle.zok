@@ -1,0 +1,34 @@
+// Double Merkle tree membership proof in ZoKrates.
+// Proves membership in TWO independent Poseidon-based Merkle trees (depth 3)
+// to roughly double the constraint count.
+
+import "hashes/poseidon/poseidon" as poseidon;
+
+const u32 DEPTH = 3;
+
+def verify_tree(field leaf, u32 index, field[DEPTH] siblings) -> field {
+    bool[DEPTH] mut bits = [false; DEPTH];
+    u32 mut rem = index;
+    for u32 i in 0..DEPTH {
+        bits[i] = rem % 2 == 1;
+        rem = rem / 2;
+    }
+
+    field mut node = leaf;
+    for u32 i in 0..DEPTH {
+        field[2] pair = bits[i] ? [siblings[i], node] : [node, siblings[i]];
+        node = poseidon(pair);
+    }
+    return node;
+}
+
+def main( \
+    private field leafA, private u32 indexA, private field[DEPTH] siblingsA, field rootA, \
+    private field leafB, private u32 indexB, private field[DEPTH] siblingsB, field rootB \
+) {
+    field computedA = verify_tree(leafA, indexA, siblingsA);
+    assert(computedA == rootA, "Leaf A is not a member of Merkle tree A");
+
+    field computedB = verify_tree(leafB, indexB, siblingsB);
+    assert(computedB == rootB, "Leaf B is not a member of Merkle tree B");
+}

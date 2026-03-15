@@ -1,0 +1,233 @@
+[
+  {
+    "name": "circom",
+    "display": "Circom",
+    "proving_system": "Groth16 (snarkjs)",
+    "wall_time_s": 0.45999999999999996,
+    "peak_ram_bytes": 257998848,
+    "proof_size_bytes": 805,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "circom_plonk",
+    "display": "Circom (PLONK)",
+    "proving_system": "PLONK (snarkjs)",
+    "wall_time_s": 1.96,
+    "peak_ram_bytes": 429834240,
+    "proof_size_bytes": 2252,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "noir",
+    "display": "Noir",
+    "proving_system": "UltraHonk",
+    "wall_time_s": 0.16666666666666666,
+    "peak_ram_bytes": 12042240,
+    "proof_size_bytes": 16256,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "zokrates",
+    "display": "ZoKrates",
+    "proving_system": "Groth16 (bellman)",
+    "wall_time_s": 0.056666666666666664,
+    "peak_ram_bytes": 10261845,
+    "proof_size_bytes": 849,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "zokrates_ark",
+    "display": "ZoKrates (ark)",
+    "proving_system": "Groth16 (arkworks)",
+    "wall_time_s": 0.04,
+    "peak_ram_bytes": 16618837,
+    "proof_size_bytes": 849,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "leo",
+    "display": "Leo",
+    "proving_system": "Marlin (snarkVM)",
+    "wall_time_s": 8.466666666666667,
+    "peak_ram_bytes": 442187776,
+    "proof_size_bytes": 7440,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "risc0",
+    "display": "RISC Zero",
+    "proving_system": "STARK (FRI)",
+    "wall_time_s": 17.416666666666668,
+    "peak_ram_bytes": 1264282282,
+    "proof_size_bytes": 244506,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "sp1",
+    "display": "SP1",
+    "proving_system": "STARK (Plonky3)",
+    "wall_time_s": 42.32666666666666,
+    "peak_ram_bytes": 4636988757,
+    "proof_size_bytes": 2777296,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "jolt",
+    "display": "Jolt",
+    "proving_system": "Lasso (Dory PCS)",
+    "wall_time_s": 2.486666666666667,
+    "peak_ram_bytes": 200682154,
+    "proof_size_bytes": 79399,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "powdr",
+    "display": "powdr",
+    "proving_system": "STARK (Plonky3)",
+    "wall_time_s": 26.633333333333336,
+    "peak_ram_bytes": 3612207786,
+    "proof_size_bytes": 2035989,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "cairo",
+    "display": "Cairo",
+    "proving_system": "STARK (Stwo)",
+    "wall_time_s": 28.566666666666666,
+    "peak_ram_bytes": 5367562240,
+    "proof_size_bytes": 10749316,
+    "success": true,
+    "error": "",
+    "variant": "single"
+  },
+  {
+    "name": "cairo_double",
+    "display": "Cairo (2x)",
+    "proving_system": "STARK (Stwo)",
+    "wall_time_s": 24.246666666666666,
+    "peak_ram_bytes": 5393798485,
+    "proof_size_bytes": 10828833,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "circom_double",
+    "display": "Circom (2x)",
+    "proving_system": "Groth16 (snarkjs)",
+    "wall_time_s": 0.48333333333333334,
+    "peak_ram_bytes": 329766229,
+    "proof_size_bytes": 804,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "circom_plonk_double",
+    "display": "Circom PLONK (2x)",
+    "proving_system": "PLONK (snarkjs)",
+    "wall_time_s": 3.58,
+    "peak_ram_bytes": 466184874,
+    "proof_size_bytes": 2247,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "noir_double",
+    "display": "Noir (2x)",
+    "proving_system": "UltraHonk",
+    "wall_time_s": 0.07333333333333335,
+    "peak_ram_bytes": 13260117,
+    "proof_size_bytes": 16256,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "zokrates_double",
+    "display": "ZoKrates (2x)",
+    "proving_system": "Groth16 (bellman)",
+    "wall_time_s": 0.06,
+    "peak_ram_bytes": 12277077,
+    "proof_size_bytes": 923,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "zokrates_ark_double",
+    "display": "ZoKrates ark (2x)",
+    "proving_system": "Groth16 (arkworks)",
+    "wall_time_s": 0.06,
+    "peak_ram_bytes": 23483733,
+    "proof_size_bytes": 923,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "risc0_double",
+    "display": "RISC Zero (2x)",
+    "proving_system": "STARK (FRI)",
+    "wall_time_s": 35.32333333333333,
+    "peak_ram_bytes": 2475212800,
+    "proof_size_bytes": 256474,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "sp1_double",
+    "display": "SP1 (2x)",
+    "proving_system": "STARK (Plonky3)",
+    "wall_time_s": 42.77333333333333,
+    "peak_ram_bytes": 4511984298,
+    "proof_size_bytes": 0,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "jolt_double",
+    "display": "Jolt (2x)",
+    "proving_system": "Lasso (Dory PCS)",
+    "wall_time_s": 3.7466666666666666,
+    "peak_ram_bytes": 373560661,
+    "proof_size_bytes": 80348,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  },
+  {
+    "name": "powdr_double",
+    "display": "powdr (2x)",
+    "proving_system": "STARK (Plonky3)",
+    "wall_time_s": 34.12,
+    "peak_ram_bytes": 3494963882,
+    "proof_size_bytes": 2045589,
+    "success": true,
+    "error": "",
+    "variant": "double"
+  }
+]
