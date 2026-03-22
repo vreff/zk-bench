@@ -1,4 +1,4 @@
-# zk-benchmarks
+# zk-bench
 
 A comparative benchmark suite implementing the **same Merkle tree membership proof** across 10 zero-knowledge proof frameworks, covering DSL-based SNARKs, general-purpose zkVMs, and STARK provers.
 
