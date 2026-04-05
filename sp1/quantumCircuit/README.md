@@ -11,16 +11,27 @@ Two quantum circuit designs each correctly compute secp256k1 point addition, ver
 | Low-Qubit   | 1,175 | ≤ 2.7M | `proofs/low_qubits/proof_9024.bin` |
 | Low-Toffoli | 1,425 | ≤ 2.1M | `proofs/low_toffoli/proof_9024.bin` |
 
-Both proofs are Groth16 SNARKs wrapping SP1 zkVM execution traces, meaning the entire circuit simulation ran inside a zero-knowledge virtual machine and the resulting proofs are constant-size (~260 bytes) regardless of the computation.
+Both proofs are Groth16 SNARKs over SP1 zkVM execution traces — the quantum circuit simulations ran inside a zero-knowledge virtual machine, and the validity of the circuits can be verified in seconds without re-executing them.
 
 ## Prerequisites
 
 - **Docker** — the build runs inside `ghcr.io/succinctlabs/sp1:v6.0.2` for reproducibility
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get update && sudo apt-get install -y docker.io
+
+  # macOS
+  brew install --cask docker  # then launch Docker Desktop
+  ```
+- **Rust** — host toolchain for compiling the verifier binary
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  source "$HOME/.cargo/env"
+  ```
 - **SP1 toolchain** — install with:
   ```bash
   curl -L https://sp1.succinct.xyz | bash && sp1up
   ```
-- **Rust** — host toolchain for compiling the verifier binary
 
 ## Usage
 
