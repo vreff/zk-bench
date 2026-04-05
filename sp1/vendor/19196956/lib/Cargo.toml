@@ -1,0 +1,17 @@
+[package]
+name = "zkp_ecc-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-primitives = "1.5.5"
+rkyv = "0.8.15"
+sp1-zkvm = { version = "6.0.2" }
+sha3 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha3", tag = "patch-sha3-0.10.8-sp1-6.0.0" }
+
+[target.'cfg(not(target_os = "zkvm"))'.dev-dependencies]
+k256 = { version = "0.13.4", features = ["hash2curve"] }
+elliptic-curve = { version = "0.13.8", features = ["hash2curve"] }
+
+[dev-dependencies]
+

@@ -1,0 +1,13 @@
+[package]
+name = "sha256_circuit_ops"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "sha256_circuit_ops"
+path = "sha256_circuit_ops.rs"
+
+[dependencies]
+zkp_ecc-lib = { path = "../../../lib" }
+sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.9-sp1-6.0.0" }
+rkyv = "0.8.15"
