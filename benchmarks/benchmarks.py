@@ -23,17 +23,68 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
 ROOT = Path(__file__).resolve().parent.parent
 BENCH_DIR = Path(__file__).resolve().parent
 
+# ---------------------------------------------------------------------------
+# Lightweight mock Aleo API – Leo v3 `execute` always fetches block height
+# and state root even with --offline.  We serve them from localhost:3030.
+# ---------------------------------------------------------------------------
+_LEO_MOCK_SERVER: HTTPServer | None = None
+
+def _ensure_leo_mock_server():
+    """Start a tiny HTTP server on 127.0.0.1:3030 if not already running."""
+    global _LEO_MOCK_SERVER
+    if _LEO_MOCK_SERVER is not None:
+        return
+
+    class _AleoMockHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            p = self.path
+            if "height/latest" in p:
+                self.wfile.write(b"15000000")
+            elif "stateRoot/latest" in p:
+                # Fetch a real one once; cache it here.  This value is from
+                # testnet as of 2025-06-21 — Leo only checks it's non-zero.
+                self.wfile.write(
+                    b'"sr10kc07weamk8vkxw5eydjaam0s8r0ndfpnvfr4plnd25ct6ycs58splqlxa"'
+                )
+            elif "program" in p:
+                self.wfile.write(b"null")
+            else:
+                self.wfile.write(b"null")
+        def log_message(self, *_a):
+            pass
+
+    try:
+        srv = HTTPServer(("127.0.0.1", 3030), _AleoMockHandler)
+    except OSError:
+        # Already bound – assume a previous instance is still alive.
+        return
+    srv.timeout = 0.5
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    _LEO_MOCK_SERVER = srv
+
+
 # Ensure tool paths are available
 _extra_paths = [
     Path.home() / ".zokrates" / "bin",
+    Path.home() / ".local" / "bin",
+    Path.home() / ".nargo" / "bin",
+    Path.home() / ".risc0" / "bin",
+    Path.home() / ".sp1" / "bin",
+    Path.home() / ".cargo" / "bin",
 ]
 for p in _extra_paths:
     if p.is_dir() and str(p) not in os.environ.get("PATH", ""):
-        os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + str(p)
+        os.environ["PATH"] = str(p) + os.pathsep + os.environ.get("PATH", "")
 
 # ---------------------------------------------------------------------------
 # Framework definitions
@@ -120,7 +171,8 @@ FRAMEWORKS = [
         bench_cmd=(
             'env PRIVATE_KEY="APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH" '
             "leo execute --network testnet "
-            '--endpoint "https://api.explorer.provable.com/v1" --yes '
+            '--endpoint "http://localhost:3030" --consensus-version 2 --offline --yes '
+            "--save ./build/ "
             "verify "
             "3795873241443991455451735146226102458893119113405484212358614283425718189900field "
             "42field 3u32 "
@@ -146,7 +198,7 @@ FRAMEWORKS = [
         workdir="sp1/merkle/script",
         pre_cmds=["cargo build --release"],
         bench_cmd="cargo run --release -- --prove",
-        proof_files=["../proof.bin"],
+        proof_files=["proof.bin"],
     ),
     Framework(
         name="jolt",
@@ -344,7 +396,7 @@ DOUBLE_FRAMEWORKS = [
         variant="double",
         pre_cmds=["cargo build --release"],
         bench_cmd="cargo run --release -- --prove",
-        proof_files=["../proof.bin"],
+        proof_files=["proof.bin"],
     ),
     Framework(
         name="jolt_double",
@@ -368,7 +420,52 @@ DOUBLE_FRAMEWORKS = [
     ),
 ]
 
-ALL_FRAMEWORKS = FRAMEWORKS + DOUBLE_FRAMEWORKS
+# ---------------------------------------------------------------------------
+# GPU-accelerated variants
+# ---------------------------------------------------------------------------
+
+GPU_FRAMEWORKS = [
+    Framework(
+        name="sp1_gpu",
+        display="SP1 (GPU)",
+        proving_system="STARK (Plonky3, CUDA)",
+        workdir="sp1/merkle/script",
+        pre_cmds=["cargo build --release"],
+        bench_cmd="env SP1_PROVER=cuda cargo run --release -- --prove",
+        proof_files=["proof.bin"],
+    ),
+    Framework(
+        name="sp1_gpu_double",
+        display="SP1 GPU (2x)",
+        proving_system="STARK (Plonky3, CUDA)",
+        workdir="sp1/doubleMerkle/script",
+        variant="double",
+        pre_cmds=["cargo build --release"],
+        bench_cmd="env SP1_PROVER=cuda cargo run --release -- --prove",
+        proof_files=["proof.bin"],
+    ),
+    Framework(
+        name="risc0_gpu",
+        display="RISC Zero (GPU)",
+        proving_system="STARK (FRI, CUDA)",
+        workdir="risc0/merkle",
+        pre_cmds=["env PATH=/usr/local/cuda-13.0/bin:$PATH cargo build --release --features cuda"],
+        bench_cmd="./target/release/host",
+        proof_files=["proof.bin"],
+    ),
+    Framework(
+        name="risc0_gpu_double",
+        display="RISC Zero GPU (2x)",
+        proving_system="STARK (FRI, CUDA)",
+        workdir="risc0/doubleMerkle",
+        variant="double",
+        pre_cmds=["env PATH=/usr/local/cuda-13.0/bin:$PATH cargo build --release --features cuda"],
+        bench_cmd="./target/release/double_host",
+        proof_files=["proof.bin"],
+    ),
+]
+
+ALL_FRAMEWORKS = FRAMEWORKS + DOUBLE_FRAMEWORKS + GPU_FRAMEWORKS
 
 FRAMEWORK_MAP = {f.name: f for f in ALL_FRAMEWORKS}
 
@@ -390,19 +487,25 @@ class BenchResult:
 
 
 def parse_time_output(stderr: str) -> tuple[float, int]:
-    """Parse macOS /usr/bin/time -l stderr output for wall time and peak RSS."""
+    """Parse GNU /usr/bin/time -v stderr output for wall time and peak RSS."""
     wall = 0.0
     rss = 0
 
-    # wall time: "  1.23 real  ..." or "1.23 real"
-    m = re.search(r"([\d.]+)\s+real", stderr)
+    # GNU time wall clock: "Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.23"
+    m = re.search(r"Elapsed \(wall clock\) time \([^)]+\):\s*(\S+)", stderr)
     if m:
-        wall = float(m.group(1))
+        parts = m.group(1).split(":")
+        if len(parts) == 3:  # h:mm:ss.cc
+            wall = int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
+        elif len(parts) == 2:  # m:ss.cc
+            wall = int(parts[0]) * 60 + float(parts[1])
+        else:
+            wall = float(parts[0])
 
-    # peak RSS: "  12345678  maximum resident set size"
-    m = re.search(r"(\d+)\s+maximum resident set size", stderr)
+    # GNU time peak RSS: "Maximum resident set size (kbytes): 12345"
+    m = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", stderr)
     if m:
-        rss = int(m.group(1))
+        rss = int(m.group(1)) * 1024  # convert KB to bytes
 
     return wall, rss
 
@@ -435,12 +538,16 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
         result.error = f"Directory not found: {workdir}"
         return result
 
-    # Run pre-commands (once)
+    # Leo needs a mock Aleo API server on localhost:3030
+    if fw.name.startswith("leo"):
+        _ensure_leo_mock_server()
+
+    # Run pre-commands (once) – CUDA builds can take 20+ min
     for cmd in fw.pre_cmds:
         print(f"  [{fw.display}] pre: {cmd}")
         proc = subprocess.run(
             cmd, shell=True, cwd=workdir,
-            capture_output=True, text=True, timeout=600,
+            capture_output=True, text=True, timeout=3600,
         )
         if proc.returncode != 0:
             result.error = f"Pre-command failed: {proc.stderr[:200]}"
@@ -463,7 +570,7 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
 
         run_label = f"run {i + 1}/{num_runs}" if num_runs > 1 else "bench"
         iter_bench_cmd = fw.bench_cmd.replace("{run}", str(i + 1))
-        iter_full_cmd = f"/usr/bin/time -l {iter_bench_cmd}"
+        iter_full_cmd = f"/usr/bin/time -v {iter_bench_cmd}"
         print(f"  [{fw.display}] {run_label}: {iter_bench_cmd}")
         try:
             proc = subprocess.run(
@@ -817,6 +924,10 @@ def main():
                         help="Also run double Merkle benchmarks")
     parser.add_argument("--double-only", action="store_true",
                         help="Run only double Merkle benchmarks")
+    parser.add_argument("--gpu", action="store_true",
+                        help="Also run GPU-accelerated benchmarks")
+    parser.add_argument("--gpu-only", action="store_true",
+                        help="Run only GPU-accelerated benchmarks")
     parser.add_argument("--runs", type=int, default=3,
                         help="Number of benchmark runs per framework (default: 3)")
     parser.add_argument("--list", action="store_true",
@@ -830,6 +941,9 @@ def main():
         print("\nDouble Merkle:")
         for f in DOUBLE_FRAMEWORKS:
             print(f"  {f.name:<20} {f.display} — {f.proving_system}")
+        print("\nGPU:")
+        for f in GPU_FRAMEWORKS:
+            print(f"  {f.name:<20} {f.display} — {f.proving_system}")
         return
 
     if args.skip_run:
@@ -842,10 +956,16 @@ def main():
                     print(f"Unknown framework: {name}. Use --list to see options.")
                     sys.exit(1)
                 targets.append(FRAMEWORK_MAP[name])
+        elif args.gpu_only:
+            targets = GPU_FRAMEWORKS
         elif args.double_only:
             targets = DOUBLE_FRAMEWORKS
-        elif args.double:
+        elif args.double and args.gpu:
             targets = ALL_FRAMEWORKS
+        elif args.double:
+            targets = FRAMEWORKS + DOUBLE_FRAMEWORKS
+        elif args.gpu:
+            targets = FRAMEWORKS + GPU_FRAMEWORKS
         else:
             targets = FRAMEWORKS
 
@@ -862,6 +982,15 @@ def main():
                       f"{fmt_bytes(r.proof_size_bytes)}")
             else:
                 print(f"  -> FAILED: {r.error}")
+
+        # When running a subset, merge with existing results
+        is_subset = args.frameworks or args.double_only or args.gpu_only
+        if is_subset and RESULTS_FILE.exists():
+            existing = load_results_json()
+            new_names = {r.name for r in results}
+            merged = [r for r in existing if r.name not in new_names]
+            merged.extend(results)
+            results = merged
 
         save_results_json(results)
 

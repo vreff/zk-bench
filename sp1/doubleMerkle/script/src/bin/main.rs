@@ -3,8 +3,7 @@ use double_merkle_lib::{
     build_tree, get_siblings, DoubleMerkleProofInput, DEPTH, LEAVES_A, LEAVES_B, PROVE_INDEX,
 };
 use sp1_sdk::{
-    blocking::{ProveRequest, Prover, ProverClient},
-    include_elf, Elf, ProvingKey, SP1Stdin,
+    include_elf, Elf, Prover, ProvingKey, ProverClient, SP1Stdin,
 };
 
 const DOUBLE_MERKLE_ELF: Elf = include_elf!("double-merkle-program");
@@ -19,7 +18,8 @@ struct Args {
     prove: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     sp1_sdk::utils::setup_logger();
 
     let args = Args::parse();
@@ -56,10 +56,10 @@ fn main() {
     let mut stdin = SP1Stdin::new();
     stdin.write(&input);
 
-    let client = ProverClient::from_env();
+    let client = ProverClient::from_env().await;
 
     if args.execute {
-        let (output, report) = client.execute(DOUBLE_MERKLE_ELF, stdin).run().unwrap();
+        let (output, report) = client.execute(DOUBLE_MERKLE_ELF, stdin).await.unwrap();
         println!("Program executed successfully.");
 
         let output_bytes: &[u8] = output.as_slice();
@@ -71,11 +71,11 @@ fn main() {
         println!("Number of cycles: {}", report.total_instruction_count());
     } else {
         println!("Generating proof...");
-        let pk = client.setup(DOUBLE_MERKLE_ELF).expect("failed to setup elf");
+        let pk = client.setup(DOUBLE_MERKLE_ELF).await.expect("failed to setup elf");
 
         let proof = client
             .prove(&pk, stdin)
-            .run()
+            .await
             .expect("failed to generate proof");
 
         println!("Successfully generated proof!");

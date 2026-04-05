@@ -1,9 +1,6 @@
 use clap::Parser;
 use merkle_lib::{build_tree, get_siblings, MerkleProofInput, DEPTH, LEAVES, PROVE_INDEX};
-use sp1_sdk::{
-    blocking::{ProveRequest, Prover, ProverClient},
-    include_elf, Elf, ProvingKey, SP1Stdin,
-};
+use sp1_sdk::{include_elf, Elf, Prover, ProvingKey, ProverClient, SP1Stdin};
 
 const MERKLE_ELF: Elf = include_elf!("merkle-program");
 
@@ -17,7 +14,8 @@ struct Args {
     prove: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     sp1_sdk::utils::setup_logger();
 
     let args = Args::parse();
@@ -52,10 +50,10 @@ fn main() {
     let mut stdin = SP1Stdin::new();
     stdin.write(&input);
 
-    let client = ProverClient::from_env();
+    let client = ProverClient::from_env().await;
 
     if args.execute {
-        let (output, report) = client.execute(MERKLE_ELF, stdin).run().unwrap();
+        let (output, report) = client.execute(MERKLE_ELF, stdin).await.unwrap();
         println!("Program executed successfully.");
 
         let committed_root: [u8; 32] = output.as_slice().try_into().unwrap();
@@ -65,11 +63,11 @@ fn main() {
         println!("Number of cycles: {}", report.total_instruction_count());
     } else {
         println!("Generating proof...");
-        let pk = client.setup(MERKLE_ELF).expect("failed to setup elf");
+        let pk = client.setup(MERKLE_ELF).await.expect("failed to setup elf");
 
         let proof = client
             .prove(&pk, stdin)
-            .run()
+            .await
             .expect("failed to generate proof");
 
         println!("Successfully generated proof!");

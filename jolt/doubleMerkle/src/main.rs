@@ -81,7 +81,8 @@ pub fn main() {
     let target_dir = "/tmp/jolt-guest-targets";
     let mut program = guest::compile_double_merkle_verify(target_dir);
 
-    let shared_preprocessing = guest::preprocess_shared_double_merkle_verify(&mut program);
+    let shared_preprocessing = guest::preprocess_shared_double_merkle_verify(&mut program)
+        .expect("shared preprocessing failed");
     let prover_preprocessing =
         guest::preprocess_prover_double_merkle_verify(shared_preprocessing.clone());
     let verifier_setup = prover_preprocessing.generators.to_verifier_setup();

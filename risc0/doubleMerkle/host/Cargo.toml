@@ -3,6 +3,10 @@ name = "double_host"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+cuda = ["risc0-zkvm/cuda"]
+
 [dependencies]
 double_methods = { path = "../methods" }
 risc0-zkvm = { version = "^3.0.5" }

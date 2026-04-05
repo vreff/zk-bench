@@ -51,23 +51,51 @@ zk-examples/
 
 ## Benchmark Results
 
-Measured on Apple M1 (8 GB RAM) with `/usr/bin/time -l`. Only proof generation is timed.
+Measured on AMD Ryzen 7 5800X (24 threads, 32 GB RAM) with 2× NVIDIA RTX 3090. Only proof generation is timed (3-run median).
+
+### Single Merkle Proof
 
 | Framework | Proving System | Peak RAM | Wall Time | Proof Size |
 |---|---|---|---|---|
-| ZoKrates | Groth16 (bellman) | 10 MB | 0.06 s | 849 B |
-| ZoKrates (ark) | Groth16 (arkworks) | 16 MB | 0.04 s | 849 B |
-| Noir | UltraHonk | 11 MB | 0.17 s | 15.9 KB |
-| Circom | Groth16 (snarkjs) | 246 MB | 0.46 s | 805 B |
-| Circom (PLONK) | PLONK (snarkjs) | 410 MB | 2.0 s | 2.2 KB |
-| Jolt | Lasso (Dory PCS) | 191 MB | 2.5 s | 77.5 KB |
-| Leo | Marlin (snarkVM) | 422 MB | 8.5 s | 7.3 KB |
-| RISC Zero | STARK (FRI) | 1,206 MB | 17.4 s | 238.8 KB |
-| Cairo | STARK (Stwo) | 5,119 MB | 28.6 s | 10.3 MB |
-| powdr | STARK (Plonky3) | 3,445 MB | 26.6 s | 1.9 MB |
-| SP1 | STARK (Plonky3) | 4,422 MB | 42.3 s | 2.6 MB |
+| ZoKrates (ark) | Groth16 (arkworks) | 23 MB | 0.03 s | 849 B |
+| ZoKrates | Groth16 (bellman) | 18 MB | 0.03 s | 849 B |
+| Noir | UltraHonk | 39 MB | 0.06 s | 15.6 KB |
+| Circom | Groth16 (snarkjs) | 445 MB | 0.45 s | 806 B |
+| **RISC Zero (GPU)** | **STARK (FRI, CUDA)** | **360 MB** | **0.94 s** | **238.8 KB** |
+| Jolt | Lasso (Dory PCS) | 182 MB | 1.6 s | 77.5 KB |
+| Circom (PLONK) | PLONK (snarkjs) | 650 MB | 1.9 s | 2.2 KB |
+| Leo | Marlin (snarkVM) | 591 MB | 3.7 s | 7.3 KB |
+| RISC Zero | STARK (FRI) | 1,189 MB | 9.2 s | 238.8 KB |
+| SP1 (GPU) | STARK (Plonky3, CUDA) | 117 MB | 11.3 s | 2.6 MB |
+| Cairo | STARK (Stwo) | 14,187 MB | 17.2 s | 10.3 MB |
+| powdr | STARK (Plonky3) | 5,890 MB | 28.6 s | 1.9 MB |
+| SP1 | STARK (Plonky3) | 9,764 MB | 39.4 s | 2.6 MB |
 
-See [benchmarks/BENCHMARKS.md](benchmarks/BENCHMARKS.md) for full analysis including arithmetic backends, scaling charts, and tradeoff discussion.
+### Double Merkle Proof (2×)
+
+| Framework | Proving System | Peak RAM | Wall Time | Proof Size |
+|---|---|---|---|---|
+| ZoKrates (2x) | Groth16 (bellman) | 18 MB | 0.05 s | 923 B |
+| ZoKrates ark (2x) | Groth16 (arkworks) | 30 MB | 0.06 s | 923 B |
+| Noir (2x) | UltraHonk | 39 MB | 0.12 s | 15.6 KB |
+| Circom (2x) | Groth16 (snarkjs) | 518 MB | 0.49 s | 806 B |
+| **RISC Zero GPU (2x)** | **STARK (FRI, CUDA)** | **394 MB** | **1.1 s** | **250.5 KB** |
+| Circom PLONK (2x) | PLONK (snarkjs) | 924 MB | 3.1 s | 2.2 KB |
+| Jolt (2x) | Lasso (Dory PCS) | 347 MB | 6.3 s | 78.4 KB |
+| SP1 GPU (2x) | STARK (Plonky3, CUDA) | 117 MB | 11.5 s | 2.6 MB |
+| Cairo (2x) | STARK (Stwo) | 14,064 MB | 16.3 s | 10.3 MB |
+| RISC Zero (2x) | STARK (FRI) | 2,348 MB | 19.2 s | 250.5 KB |
+| SP1 (2x) | STARK (Plonky3) | 9,901 MB | 52.5 s | 2.6 MB |
+| powdr (2x) | STARK (Plonky3) | 6,739 MB | 76.7 s | 1.9 MB |
+
+### GPU Acceleration
+
+| Framework | CPU Time | GPU Time | Speedup |
+|---|---|---|---|
+| RISC Zero | 9.2 s | 0.94 s | **~10×** |
+| RISC Zero (2x) | 19.2 s | 1.1 s | **~17×** |
+| SP1 | 39.4 s | 11.3 s | **~3.5×** |
+| SP1 (2x) | 52.5 s | 11.5 s | **~4.6×** |
 
 ## Running Benchmarks
 
@@ -80,6 +108,12 @@ python3 benchmarks/benchmarks.py
 
 # Run single + double (scaling comparison)
 python3 benchmarks/benchmarks.py --double
+
+# Run GPU-accelerated benchmarks (requires NVIDIA GPU + CUDA)
+python3 benchmarks/benchmarks.py --gpu
+
+# Run all (CPU + GPU + double)
+python3 benchmarks/benchmarks.py --double --gpu
 
 # Run only double-circuit benchmarks
 python3 benchmarks/benchmarks.py --double-only
@@ -99,13 +133,15 @@ python3 benchmarks/benchmarks.py --list
 
 ## Key Takeaways
 
-- **Fastest proving**: ZoKrates Groth16 (0.04–0.06s) — native Rust field arithmetic on BN254
+- **Fastest proving**: ZoKrates Groth16 (0.03s) — native Rust field arithmetic on BN254
 - **Smallest proofs**: Groth16 (~800 B) — constant size regardless of circuit complexity
-- **Best all-around**: Noir UltraHonk — fast proving (0.17s), low memory (11 MB), no per-circuit trusted setup
-- **Best zkVM**: Jolt — 2.5s proving, 191 MB RAM, 77.5 KB proofs; much lighter than STARK-based VMs
+- **Best all-around**: Noir UltraHonk — fast proving (0.06s), low memory (39 MB), no per-circuit trusted setup
+- **Best zkVM (CPU)**: Jolt — 1.6s proving, 182 MB RAM, 77.5 KB proofs; much lighter than STARK-based VMs
+- **Best zkVM (GPU)**: RISC Zero — 0.94s with CUDA, ~10× speedup over CPU
+- **GPU acceleration**: RISC Zero benefits most from GPU (~10–17× speedup); SP1 gets ~3.5–4.6×
 - **Post-quantum**: RISC Zero, SP1, powdr, Cairo — STARK-based systems don't rely on elliptic curve hardness
 
-The fundamental tradeoff: **SNARKs** (Groth16, PLONK, UltraHonk) produce small proofs fast but require elliptic curve assumptions. **STARKs** (RISC Zero, SP1, Cairo, powdr) offer transparency and post-quantum security at the cost of larger proofs and higher resource usage.
+The fundamental tradeoff: **SNARKs** (Groth16, PLONK, UltraHonk) produce small proofs fast but require elliptic curve assumptions. **STARKs** (RISC Zero, SP1, Cairo, powdr) offer transparency and post-quantum security at the cost of larger proofs and higher resource usage. **GPU acceleration** narrows this gap significantly for STARK-based VMs.
 
 ## Per-Framework Setup
 
