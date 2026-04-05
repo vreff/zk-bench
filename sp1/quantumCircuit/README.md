@@ -13,6 +13,8 @@ Two quantum circuit designs each correctly compute secp256k1 point addition, ver
 
 Both proofs are Groth16 SNARKs over SP1 zkVM execution traces — the quantum circuit simulations ran inside a zero-knowledge virtual machine, and the validity of the circuits can be verified in seconds without re-executing them.
 
+Anyone who trusts the quantum simulator in [`../vendor/19196956/lib/src/sim.rs`](../vendor/19196956/lib/src/sim.rs) can be convinced that the prover possesses quantum circuits meeting the claimed qubit and gate counts for secp256k1 point addition.
+
 ## Prerequisites
 
 - **Docker** — the build runs inside `ghcr.io/succinctlabs/sp1:v6.0.2` for reproducibility
