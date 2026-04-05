@@ -28,6 +28,8 @@ import threading
 
 ROOT = Path(__file__).resolve().parent.parent
 BENCH_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR = BENCH_DIR / os.environ.get("ZK_BENCH_OUTPUT", "results")
+OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # Lightweight mock Aleo API – Leo v3 `execute` always fetches block height
@@ -480,10 +482,64 @@ class BenchResult:
     proving_system: str
     wall_time_s: float = 0.0
     peak_ram_bytes: int = 0
+    peak_vram_bytes: int = 0
     proof_size_bytes: int = 0
     success: bool = False
     error: str = ""
     variant: str = "single"
+
+
+class VramMonitor:
+    """Poll nvidia-smi in a background thread to track peak VRAM usage."""
+    def __init__(self, interval: float = 0.1):
+        self._interval = interval
+        self._peak_bytes = 0
+        self._baseline_bytes = 0
+        self._running = False
+        self._thread: threading.Thread | None = None
+
+    def _poll(self):
+        while self._running:
+            try:
+                out = subprocess.check_output(
+                    ["nvidia-smi", "--query-gpu=memory.used",
+                     "--format=csv,noheader,nounits"],
+                    text=True, timeout=2,
+                )
+                # Sum across all GPUs, value is in MiB
+                total = sum(int(line.strip()) for line in out.strip().splitlines() if line.strip())
+                total_bytes = total * 1024 * 1024
+                if total_bytes > self._peak_bytes:
+                    self._peak_bytes = total_bytes
+            except Exception:
+                pass
+            import time
+            time.sleep(self._interval)
+
+    def start(self):
+        # Record baseline VRAM before the workload starts
+        try:
+            out = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=memory.used",
+                 "--format=csv,noheader,nounits"],
+                text=True, timeout=2,
+            )
+            self._baseline_bytes = sum(
+                int(line.strip()) for line in out.strip().splitlines() if line.strip()
+            ) * 1024 * 1024
+        except Exception:
+            self._baseline_bytes = 0
+        self._peak_bytes = self._baseline_bytes
+        self._running = True
+        self._thread = threading.Thread(target=self._poll, daemon=True)
+        self._thread.start()
+
+    def stop(self) -> int:
+        """Stop monitoring and return peak VRAM usage above baseline (bytes)."""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=1)
+        return max(0, self._peak_bytes - self._baseline_bytes)
 
 
 def parse_time_output(stderr: str) -> tuple[float, int]:
@@ -553,9 +609,12 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
             result.error = f"Pre-command failed: {proc.stderr[:200]}"
             return result
 
+    is_gpu = "cuda" in fw.proving_system.lower()
+
     # Run the benchmark num_runs times
     wall_times = []
     peak_rams = []
+    peak_vrams = []
     for i in range(num_runs):
         # Run per-iteration pre-commands
         for cmd in fw.pre_each_cmds:
@@ -572,14 +631,24 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
         iter_bench_cmd = fw.bench_cmd.replace("{run}", str(i + 1))
         iter_full_cmd = f"/usr/bin/time -v {iter_bench_cmd}"
         print(f"  [{fw.display}] {run_label}: {iter_bench_cmd}")
+
+        vmon = None
+        if is_gpu:
+            vmon = VramMonitor(interval=0.1)
+            vmon.start()
+
         try:
             proc = subprocess.run(
                 iter_full_cmd, shell=True, cwd=workdir,
                 capture_output=True, text=True, timeout=1200,
             )
         except subprocess.TimeoutExpired:
+            if vmon:
+                vmon.stop()
             result.error = "Timed out (>20 min)"
             return result
+
+        vram_used = vmon.stop() if vmon else 0
 
         if proc.returncode != 0:
             result.error = f"Exit code {proc.returncode}: {proc.stderr[:300]}"
@@ -588,9 +657,11 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
         wall, rss = parse_time_output(proc.stderr)
         wall_times.append(wall)
         peak_rams.append(rss)
+        peak_vrams.append(vram_used)
 
     result.wall_time_s = sum(wall_times) / len(wall_times)
     result.peak_ram_bytes = int(sum(peak_rams) / len(peak_rams))
+    result.peak_vram_bytes = int(sum(peak_vrams) / len(peak_vrams)) if peak_vrams else 0
     result.proof_size_bytes = measure_proof_size(fw)
     result.success = True
     return result
@@ -638,7 +709,7 @@ def print_results_table(results: list[BenchResult]):
     ok = sorted([r for r in results if r.success], key=lambda r: r.wall_time_s)
     fail = [r for r in results if not r.success]
 
-    header = f"{'Framework':<14} {'Proving System':<22} {'Peak RAM':>10} {'Wall Time':>11} {'Proof Size':>12}"
+    header = f"{'Framework':<14} {'Proving System':<22} {'Peak RAM':>10} {'Peak VRAM':>11} {'Wall Time':>11} {'Proof Size':>12}"
     sep = "-" * len(header)
 
     lines = [
@@ -649,9 +720,10 @@ def print_results_table(results: list[BenchResult]):
         sep,
     ]
     for r in ok:
+        vram_str = fmt_ram(r.peak_vram_bytes) if r.peak_vram_bytes else "—"
         lines.append(
             f"{r.display:<14} {r.proving_system:<22} {fmt_ram(r.peak_ram_bytes):>10} "
-            f"{fmt_time(r.wall_time_s):>11} {fmt_bytes(r.proof_size_bytes):>12}"
+            f"{vram_str:>11} {fmt_time(r.wall_time_s):>11} {fmt_bytes(r.proof_size_bytes):>12}"
         )
     for r in fail:
         lines.append(f"{r.display:<14} {'FAILED':<22} {'—':>10} {'—':>11} {'—':>12}")
@@ -660,7 +732,7 @@ def print_results_table(results: list[BenchResult]):
     text = "\n".join(lines)
     print("\n" + text + "\n")
 
-    out = BENCH_DIR / "bench_results.txt"
+    out = OUTPUT_DIR / "bench_results.txt"
     out.write_text(text + "\n")
     print(f"Saved table to {out}")
 
@@ -684,6 +756,9 @@ def save_charts(results: list[BenchResult]):
         return
 
     names = [r.display for r in ok]
+
+    def is_gpu(r: BenchResult) -> bool:
+        return "cuda" in r.proving_system.lower()
 
     # Color palette: group by proving-system family
     def color_for(r: BenchResult) -> str:
@@ -718,27 +793,53 @@ def save_charts(results: list[BenchResult]):
                 fmt_time(t), va="center", fontsize=9)
     ax.set_xlim(0, max(times) * 1.18)
     plt.tight_layout()
-    wall_path = BENCH_DIR / "chart_results_wall_time.png"
+    wall_path = OUTPUT_DIR / "chart_results_wall_time.png"
     fig.savefig(wall_path, dpi=150)
     plt.close(fig)
     print(f"Saved {wall_path}")
 
-    # --- Peak RAM ---
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ram_mb = [r.peak_ram_bytes / (1024 * 1024) for r in ok]
-    bars = ax.barh(names, ram_mb, color=colors, edgecolor="white", linewidth=0.5)
-    ax.set_xlabel("Peak RSS (MB)")
-    ax.set_title("ZK Proof Generation — Peak Memory")
-    ax.invert_yaxis()
-    for bar, mb in zip(bars, ram_mb):
-        ax.text(bar.get_width() + max(ram_mb) * 0.01, bar.get_y() + bar.get_height() / 2,
-                fmt_ram(int(mb * 1024 * 1024)), va="center", fontsize=9)
-    ax.set_xlim(0, max(ram_mb) * 1.18)
-    plt.tight_layout()
-    ram_path = BENCH_DIR / "chart_results_peak_ram.png"
-    fig.savefig(ram_path, dpi=150)
-    plt.close(fig)
-    print(f"Saved {ram_path}")
+    # --- Peak RAM (exclude GPU — RSS doesn't capture VRAM) ---
+    ok_cpu = [r for r in ok if not is_gpu(r)]
+    if ok_cpu:
+        names_cpu = [r.display for r in ok_cpu]
+        colors_cpu = [color_for(r) for r in ok_cpu]
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ram_mb = [r.peak_ram_bytes / (1024 * 1024) for r in ok_cpu]
+        bars = ax.barh(names_cpu, ram_mb, color=colors_cpu, edgecolor="white", linewidth=0.5)
+        ax.set_xlabel("Peak RSS (MB)")
+        ax.set_title("ZK Proof Generation — Peak Memory (CPU only)")
+        ax.invert_yaxis()
+        for bar, mb in zip(bars, ram_mb):
+            ax.text(bar.get_width() + max(ram_mb) * 0.01, bar.get_y() + bar.get_height() / 2,
+                    fmt_ram(int(mb * 1024 * 1024)), va="center", fontsize=9)
+        ax.set_xlim(0, max(ram_mb) * 1.18)
+        plt.tight_layout()
+        ram_path = OUTPUT_DIR / "chart_results_peak_ram.png"
+        fig.savefig(ram_path, dpi=150)
+        plt.close(fig)
+        print(f"Saved {ram_path}")
+
+    # --- Peak VRAM (GPU only) ---
+    ok_gpu = [r for r in ok if is_gpu(r) and r.peak_vram_bytes > 0]
+    if ok_gpu:
+        ok_gpu_sorted = sorted(ok_gpu, key=lambda r: r.peak_vram_bytes)
+        names_gpu = [r.display for r in ok_gpu_sorted]
+        colors_gpu = [color_for(r) for r in ok_gpu_sorted]
+        fig, ax = plt.subplots(figsize=(10, max(3, len(ok_gpu_sorted) * 0.6 + 1)))
+        vram_mb = [r.peak_vram_bytes / (1024 * 1024) for r in ok_gpu_sorted]
+        bars = ax.barh(names_gpu, vram_mb, color=colors_gpu, edgecolor="white", linewidth=0.5)
+        ax.set_xlabel("Peak VRAM (MB)")
+        ax.set_title("ZK Proof Generation — Peak VRAM (GPU)")
+        ax.invert_yaxis()
+        for bar, mb in zip(bars, vram_mb):
+            ax.text(bar.get_width() + max(vram_mb) * 0.01, bar.get_y() + bar.get_height() / 2,
+                    fmt_ram(int(mb * 1024 * 1024)), va="center", fontsize=9)
+        ax.set_xlim(0, max(vram_mb) * 1.18)
+        plt.tight_layout()
+        vram_path = OUTPUT_DIR / "chart_results_peak_vram.png"
+        fig.savefig(vram_path, dpi=150)
+        plt.close(fig)
+        print(f"Saved {vram_path}")
 
     # --- Proof Size (log scale) ---
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -756,7 +857,7 @@ def save_charts(results: list[BenchResult]):
         ax.text(bar.get_width() * 1.15, bar.get_y() + bar.get_height() / 2,
                 fmt_bytes(sz), va="center", fontsize=9)
     plt.tight_layout()
-    size_path = BENCH_DIR / "chart_results_proof_size.png"
+    size_path = OUTPUT_DIR / "chart_results_proof_size.png"
     fig.savefig(size_path, dpi=150)
     plt.close(fig)
     print(f"Saved {size_path}")
@@ -814,37 +915,74 @@ def save_scaling_charts(results: list[BenchResult]):
 
     ax.set_ylim(0, max(double_times) * 1.15)
     plt.tight_layout()
-    path = BENCH_DIR / "chart_scaling_time.png"
+    path = OUTPUT_DIR / "chart_scaling_time.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved {path}")
 
-    # --- Peak RAM Scaling ---
-    fig, ax = plt.subplots(figsize=(12, 6))
-    single_ram = [s.peak_ram_bytes / (1024 * 1024) for s, _ in paired]
-    double_ram = [d.peak_ram_bytes / (1024 * 1024) for _, d in paired]
+    # --- Peak RAM Scaling (exclude GPU — RSS doesn't capture VRAM) ---
+    paired_cpu = [(s, d) for s, d in paired if "cuda" not in s.proving_system.lower()]
+    if paired_cpu:
+        labels_cpu = [s.display for s, _ in paired_cpu]
+        x_cpu = np.arange(len(labels_cpu))
+        single_ram = [s.peak_ram_bytes / (1024 * 1024) for s, _ in paired_cpu]
+        double_ram = [d.peak_ram_bytes / (1024 * 1024) for _, d in paired_cpu]
 
-    bars1 = ax.bar(x - width/2, single_ram, width, label="Single Merkle", color="#4C72B0", edgecolor="white")
-    bars2 = ax.bar(x + width/2, double_ram, width, label="Double Merkle", color="#C44E52", edgecolor="white")
+        fig, ax = plt.subplots(figsize=(12, 6))
+        bars1 = ax.bar(x_cpu - width/2, single_ram, width, label="Single Merkle", color="#4C72B0", edgecolor="white")
+        bars2 = ax.bar(x_cpu + width/2, double_ram, width, label="Double Merkle", color="#C44E52", edgecolor="white")
 
-    ax.set_ylabel("Peak RSS (MB)")
-    ax.set_title("Scaling: Single vs Double Merkle — Peak Memory")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=30, ha="right")
-    ax.legend()
+        ax.set_ylabel("Peak RSS (MB)")
+        ax.set_title("Scaling: Single vs Double Merkle — Peak Memory (CPU only)")
+        ax.set_xticks(x_cpu)
+        ax.set_xticklabels(labels_cpu, rotation=30, ha="right")
+        ax.legend()
 
-    for i, (s, d) in enumerate(zip(single_ram, double_ram)):
-        if s > 0:
-            mult = d / s
-            ax.text(x[i] + width/2, d + max(double_ram) * 0.02,
-                    f"{mult:.1f}x", ha="center", fontsize=8, fontweight="bold")
+        for i, (s, d) in enumerate(zip(single_ram, double_ram)):
+            if s > 0:
+                mult = d / s
+                ax.text(x_cpu[i] + width/2, d + max(double_ram) * 0.02,
+                        f"{mult:.1f}x", ha="center", fontsize=8, fontweight="bold")
 
-    ax.set_ylim(0, max(double_ram) * 1.15)
-    plt.tight_layout()
-    path = BENCH_DIR / "chart_scaling_ram.png"
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
-    print(f"Saved {path}")
+        ax.set_ylim(0, max(double_ram) * 1.15)
+        plt.tight_layout()
+        path = OUTPUT_DIR / "chart_scaling_ram.png"
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        print(f"Saved {path}")
+
+    # --- Peak VRAM Scaling (GPU only) ---
+    paired_gpu = [(s, d) for s, d in paired
+                  if "cuda" in s.proving_system.lower()
+                  and s.peak_vram_bytes > 0 and d.peak_vram_bytes > 0]
+    if paired_gpu:
+        labels_gpu = [s.display for s, _ in paired_gpu]
+        x_gpu = np.arange(len(labels_gpu))
+        single_vram = [s.peak_vram_bytes / (1024 * 1024) for s, _ in paired_gpu]
+        double_vram = [d.peak_vram_bytes / (1024 * 1024) for _, d in paired_gpu]
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        bars1 = ax.bar(x_gpu - width/2, single_vram, width, label="Single Merkle", color="#4C72B0", edgecolor="white")
+        bars2 = ax.bar(x_gpu + width/2, double_vram, width, label="Double Merkle", color="#C44E52", edgecolor="white")
+
+        ax.set_ylabel("Peak VRAM (MB)")
+        ax.set_title("Scaling: Single vs Double Merkle — Peak VRAM (GPU)")
+        ax.set_xticks(x_gpu)
+        ax.set_xticklabels(labels_gpu, rotation=30, ha="right")
+        ax.legend()
+
+        for i, (s, d) in enumerate(zip(single_vram, double_vram)):
+            if s > 0:
+                mult = d / s
+                ax.text(x_gpu[i] + width/2, d + max(double_vram) * 0.02,
+                        f"{mult:.1f}x", ha="center", fontsize=8, fontweight="bold")
+
+        ax.set_ylim(0, max(double_vram) * 1.15)
+        plt.tight_layout()
+        path = OUTPUT_DIR / "chart_scaling_vram.png"
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        print(f"Saved {path}")
 
     # --- Proof Size Scaling ---
     paired_with_size = [(s, d) for s, d in paired if s.proof_size_bytes > 0 and d.proof_size_bytes > 0]
@@ -872,7 +1010,7 @@ def save_scaling_charts(results: list[BenchResult]):
                         f"{mult:.1f}x", ha="center", fontsize=8, fontweight="bold")
 
         plt.tight_layout()
-        path = BENCH_DIR / "chart_scaling_proof_size.png"
+        path = OUTPUT_DIR / "chart_scaling_proof_size.png"
         fig.savefig(path, dpi=150)
         plt.close(fig)
         print(f"Saved {path}")
@@ -882,12 +1020,12 @@ def save_scaling_charts(results: list[BenchResult]):
 # Results persistence
 # ---------------------------------------------------------------------------
 
-RESULTS_FILE = BENCH_DIR / "bench_results.json"
+RESULTS_FILE = OUTPUT_DIR / "bench_results.json"
 
 def save_results_json(results: list[BenchResult]):
     data = []
     for r in results:
-        data.append({
+        d = {
             "name": r.name,
             "display": r.display,
             "proving_system": r.proving_system,
@@ -897,7 +1035,10 @@ def save_results_json(results: list[BenchResult]):
             "success": r.success,
             "error": r.error,
             "variant": r.variant,
-        })
+        }
+        if r.peak_vram_bytes:
+            d["peak_vram_bytes"] = r.peak_vram_bytes
+        data.append(d)
     RESULTS_FILE.write_text(json.dumps(data, indent=2) + "\n")
     print(f"Saved raw data to {RESULTS_FILE}")
 
@@ -977,9 +1118,12 @@ def main():
             r = run_framework(fw, num_runs=args.runs)
             results.append(r)
             if r.success:
-                print(f"  -> {fmt_time(r.wall_time_s)}, "
-                      f"{fmt_ram(r.peak_ram_bytes)}, "
-                      f"{fmt_bytes(r.proof_size_bytes)}")
+                summary = (f"  -> {fmt_time(r.wall_time_s)}, "
+                           f"{fmt_ram(r.peak_ram_bytes)}, "
+                           f"{fmt_bytes(r.proof_size_bytes)}")
+                if r.peak_vram_bytes:
+                    summary += f", VRAM: {fmt_ram(r.peak_vram_bytes)}"
+                print(summary)
             else:
                 print(f"  -> FAILED: {r.error}")
 

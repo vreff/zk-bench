@@ -209,28 +209,6 @@
     "variant": "single"
   },
   {
-    "name": "sp1_gpu",
-    "display": "SP1 (GPU)",
-    "proving_system": "STARK (Plonky3, CUDA)",
-    "wall_time_s": 11.32,
-    "peak_ram_bytes": 122370730,
-    "proof_size_bytes": 2777296,
-    "success": true,
-    "error": "",
-    "variant": "single"
-  },
-  {
-    "name": "sp1_gpu_double",
-    "display": "SP1 GPU (2x)",
-    "proving_system": "STARK (Plonky3, CUDA)",
-    "wall_time_s": 11.453333333333333,
-    "peak_ram_bytes": 122478592,
-    "proof_size_bytes": 2777840,
-    "success": true,
-    "error": "",
-    "variant": "double"
-  },
-  {
     "name": "sp1",
     "display": "SP1",
     "proving_system": "STARK (Plonky3)",
@@ -256,22 +234,48 @@
     "name": "risc0_gpu",
     "display": "RISC Zero (GPU)",
     "proving_system": "STARK (FRI, CUDA)",
-    "wall_time_s": 0.9433333333333334,
-    "peak_ram_bytes": 377899690,
+    "wall_time_s": 0.9466666666666667,
+    "peak_ram_bytes": 378096298,
     "proof_size_bytes": 244506,
     "success": true,
     "error": "",
-    "variant": "single"
+    "variant": "single",
+    "peak_vram_bytes": 5347737600
   },
   {
     "name": "risc0_gpu_double",
     "display": "RISC Zero GPU (2x)",
     "proving_system": "STARK (FRI, CUDA)",
-    "wall_time_s": 1.1033333333333333,
-    "peak_ram_bytes": 412835840,
+    "wall_time_s": 1.1133333333333333,
+    "peak_ram_bytes": 412968277,
     "proof_size_bytes": 256474,
     "success": true,
     "error": "",
-    "variant": "double"
+    "variant": "double",
+    "peak_vram_bytes": 6510957909
+  },
+  {
+    "name": "sp1_gpu",
+    "display": "SP1 (GPU)",
+    "proving_system": "STARK (Plonky3, CUDA)",
+    "wall_time_s": 11.893333333333333,
+    "peak_ram_bytes": 122411690,
+    "proof_size_bytes": 2777296,
+    "success": true,
+    "error": "",
+    "variant": "single",
+    "peak_vram_bytes": 4237295616
+  },
+  {
+    "name": "sp1_gpu_double",
+    "display": "SP1 GPU (2x)",
+    "proving_system": "STARK (Plonky3, CUDA)",
+    "wall_time_s": 11.81,
+    "peak_ram_bytes": 122544128,
+    "proof_size_bytes": 2777840,
+    "success": true,
+    "error": "",
+    "variant": "double",
+    "peak_vram_bytes": 4220867925
   }
 ]
