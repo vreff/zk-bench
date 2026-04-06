@@ -28,6 +28,8 @@ A "double" variant (2x) proves membership in **two independent Merkle trees** to
 | [Jolt](jolt/merkle/) | Rust | Lasso + Dory PCS | None | SHA-256 |
 | [powdr](powdr/merkle/) | Rust | FRI-STARK (Plonky3) | None | SHA-256 |
 
+> **Why different hash functions?** DSL circuits use **Poseidon** (an algebraic hash designed for arithmetic circuits) because it costs ~250 constraints vs ~25,000+ for SHA-256 — a ~100× difference. zkVMs use **SHA-256** because they execute normal CPU code and several (RISC Zero, SP1) include hardware-style SHA-256 accelerator precompiles. Each framework uses the hash a real developer would naturally reach for, keeping the benchmark representative.
+
 ## Project Structure
 
 ```
