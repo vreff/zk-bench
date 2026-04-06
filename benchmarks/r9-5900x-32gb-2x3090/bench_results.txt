@@ -17,6 +17,7 @@ Jolt           Lasso (Dory PCS)           182 MB           —       1.6 s      
 Circom (PLONK) PLONK (snarkjs)            650 MB           —       1.9 s       2.2 KB
 Circom PLONK (2x) PLONK (snarkjs)            924 MB           —       3.1 s       2.2 KB
 Leo            Marlin (snarkVM)           591 MB           —       3.7 s       7.3 KB
+Leo (2x)       Marlin (snarkVM)           991 MB           —       5.2 s       9.0 KB
 Jolt (2x)      Lasso (Dory PCS)           347 MB           —       6.3 s      78.4 KB
 RISC Zero      STARK (FRI)              1,189 MB           —       9.2 s     238.8 KB
 SP1 GPU (2x)   STARK (Plonky3, CUDA)      117 MB    4,025 MB      11.8 s       2.6 MB

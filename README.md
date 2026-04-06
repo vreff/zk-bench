@@ -83,6 +83,7 @@ Measured on AMD Ryzen 9 5900X (24 threads, 32 GB RAM) with 2× NVIDIA RTX 3090. 
 | Circom (2x) | Groth16 (snarkjs) | 518 MB | 0.49 s | 806 B |
 | **RISC Zero GPU (2x)** | **STARK (FRI, CUDA)** | **394 MB** | **1.1 s** | **250.5 KB** |
 | Circom PLONK (2x) | PLONK (snarkjs) | 924 MB | 3.1 s | 2.2 KB |
+| Leo (2x) | Marlin (snarkVM) | 991 MB | 5.2 s | 9.0 KB |
 | Jolt (2x) | Lasso (Dory PCS) | 347 MB | 6.3 s | 78.4 KB |
 | SP1 GPU (2x) | STARK (Plonky3, CUDA) | 117 MB | 11.5 s | 2.6 MB |
 | Cairo (2x) | STARK (Stwo) | 14,064 MB | 16.3 s | 10.3 MB |

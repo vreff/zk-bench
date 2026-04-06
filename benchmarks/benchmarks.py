@@ -185,6 +185,31 @@ FRAMEWORKS = [
         proof_files=["build/transaction.execution.json"],
     ),
     Framework(
+        name="leo_double",
+        display="Leo (2x)",
+        proving_system="Marlin (snarkVM)",
+        workdir="leo/doubleMerkle",
+        variant="double",
+        bench_cmd=(
+            'env PRIVATE_KEY="APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH" '
+            "leo execute --network testnet "
+            '--endpoint "http://localhost:3030" --consensus-version 2 --offline --yes '
+            "--save ./build/ "
+            "verify "
+            "3795873241443991455451735146226102458893119113405484212358614283425718189900field "
+            "42field 3u32 "
+            "5032677853915026442484505200337051980545600190313243825534151256332463055896field "
+            "2025782052806597445336394462093422610260230542964192141256089645210002703802field "
+            "6518303460776629079511004668974420229885492538691518135386352722012076854807field "
+            "3795873241443991455451735146226102458893119113405484212358614283425718189900field "
+            "42field 3u32 "
+            "5032677853915026442484505200337051980545600190313243825534151256332463055896field "
+            "2025782052806597445336394462093422610260230542964192141256089645210002703802field "
+            "6518303460776629079511004668974420229885492538691518135386352722012076854807field"
+        ),
+        proof_files=["build/transaction.execution.json"],
+    ),
+    Framework(
         name="risc0",
         display="RISC Zero",
         proving_system="STARK (FRI)",

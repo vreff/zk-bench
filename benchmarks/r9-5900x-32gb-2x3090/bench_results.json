@@ -277,5 +277,16 @@
     "error": "",
     "variant": "double",
     "peak_vram_bytes": 4220867925
+  },
+  {
+    "name": "leo_double",
+    "display": "Leo (2x)",
+    "proving_system": "Marlin (snarkVM)",
+    "wall_time_s": 5.196666666666666,
+    "peak_ram_bytes": 1039127893,
+    "proof_size_bytes": 9187,
+    "success": true,
+    "error": "",
+    "variant": "double"
   }
 ]
