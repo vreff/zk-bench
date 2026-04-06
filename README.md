@@ -33,7 +33,7 @@ A "double" variant (2x) proves membership in **two independent Merkle trees** to
 ## Project Structure
 
 ```
-zk-examples/
+zk-bench/
 ├── benchmarks/          # Benchmark runner, results, and charts
 │   ├── benchmarks.py    # Automated benchmark suite
 │   ├── BENCHMARKS.md    # Detailed analysis and methodology
@@ -53,7 +53,7 @@ zk-examples/
 
 ## Benchmark Results
 
-Measured on AMD Ryzen 7 5800X (24 threads, 32 GB RAM) with 2× NVIDIA RTX 3090. Only proof generation is timed (3-run median).
+Measured on AMD Ryzen 9 5900X (24 threads, 32 GB RAM) with 2× NVIDIA RTX 3090. Only proof generation is timed (3-run median).
 
 ### Single Merkle Proof
 
