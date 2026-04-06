@@ -564,6 +564,19 @@ class VramMonitor:
         self._running = False
         if self._thread:
             self._thread.join(timeout=1)
+        # Final poll — some GPU frameworks (e.g. SP1) retain VRAM after exit
+        try:
+            out = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=memory.used",
+                 "--format=csv,noheader,nounits"],
+                text=True, timeout=2,
+            )
+            total = sum(int(line.strip()) for line in out.strip().splitlines() if line.strip())
+            total_bytes = total * 1024 * 1024
+            if total_bytes > self._peak_bytes:
+                self._peak_bytes = total_bytes
+        except Exception:
+            pass
         return max(0, self._peak_bytes - self._baseline_bytes)
 
 
@@ -606,7 +619,7 @@ def measure_proof_size(fw: Framework) -> int:
 
 
 def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
-    """Run a single framework benchmark num_runs times and average results."""
+    """Run a single framework benchmark num_runs times and take median."""
     result = BenchResult(
         name=fw.name,
         display=fw.display,
@@ -635,6 +648,11 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
             return result
 
     is_gpu = "cuda" in fw.proving_system.lower()
+
+    # Give VRAM time to be freed from previous GPU workloads
+    if is_gpu:
+        import time as _time
+        _time.sleep(2)
 
     # Run the benchmark num_runs times
     wall_times = []
@@ -684,9 +702,11 @@ def run_framework(fw: Framework, num_runs: int = 3) -> BenchResult:
         peak_rams.append(rss)
         peak_vrams.append(vram_used)
 
-    result.wall_time_s = sum(wall_times) / len(wall_times)
-    result.peak_ram_bytes = int(sum(peak_rams) / len(peak_rams))
-    result.peak_vram_bytes = int(sum(peak_vrams) / len(peak_vrams)) if peak_vrams else 0
+    result.wall_time_s = sorted(wall_times)[len(wall_times) // 2]
+    result.peak_ram_bytes = sorted(peak_rams)[len(peak_rams) // 2]
+    # Use max for VRAM — GPU contexts can persist between runs, inflating
+    # the baseline and suppressing the delta on subsequent iterations.
+    result.peak_vram_bytes = max(peak_vrams) if peak_vrams else 0
     result.proof_size_bytes = measure_proof_size(fw)
     result.success = True
     return result
